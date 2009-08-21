@@ -48,9 +48,9 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	 */
 	private Rect mRedPaddleRect = new Rect();
 	private Rect mBluePaddleRect = new Rect();
-	private Rect mRedTouchBox, mBlueTouchBox;
-	private int mRedLastTouch = 0;
-	private int mBlueLastTouch = 0;
+	private Rect mRedTouchBox, mBlueTouchBox, mPauseTouchBox;
+	private float mRedLastTouch = 0;
+	private float mBlueLastTouch = 0;
 	private int mRedLives;
 	private int mBlueLives;
 	private boolean mRedIsPlayer = false;
@@ -92,6 +92,7 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	private static final int PADDLE_THICKNESS = 10;
 	private static final int PADDLE_WIDTH = 40;
 	private static final int PADDING = 3;
+	private static final int SCROLL_SENSITIVITY = 20 * mPaddleSpeed;
 	
 	/**
 	 * Controls how fast we refresh
@@ -253,8 +254,8 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	 * @param speed, the speed at which the paddle moves at maximum.
 	 * @param x, the x-coordinate to move to.
 	 */
-	private void movePaddleTorward(Rect r, int speed, int x) {
-		int dx = Math.abs(r.centerX() - x);
+	private void movePaddleTorward(Rect r, int speed, float x) {
+		int dx = (int) Math.abs(r.centerX() - x);
 		
 		if(x < r.centerX()) {
 			r.offset( (dx > speed) ? -speed : -dx, 0);
@@ -469,6 +470,12 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
     private void nextRound() {
     	mRedTouchBox = new Rect(0,0,getWidth(),getHeight() / 8);
     	mBlueTouchBox = new Rect(0, 7 * getHeight() / 8, getWidth(), getHeight());
+    	
+    	int min = Math.min(getWidth() / 4, getHeight() / 4);
+    	int xmid = getWidth() / 2;
+    	int ymid = getHeight() / 2;
+    	mPauseTouchBox = new Rect(xmid - min, ymid - min, xmid + min, ymid + min);
+    	
     	realignPaddles();
     	resetBall();
     	mFramesPerSecond = 30;
@@ -573,20 +580,31 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
         	canvas.drawCircle(mBallPosition.getX(), mBallPosition.getY(), BALL_RADIUS, mPaint);
         
         // If either is a not a player, blink and let them know they can join in!
-        if(!showTitle && (mBallCounter / 10) % 2 == 1 && mBallCounter > 0 && (!mRedIsPlayer || !mBlueIsPlayer)) {
-        	String s = context.getString(R.string.join_in);
-        	int w = (int) mPaint.measureText(s);
+        // This blinks with the ball.
+        if(!showTitle && (mBallCounter / 10) % 2 == 1 && mBallCounter > 0) {
+        	String join = context.getString(R.string.join_in);
+        	int joinw = (int) mPaint.measureText(join);
         	
         	if(!mRedIsPlayer) {
         		mPaint.setColor(Color.RED);
-        		canvas.drawText(s, getWidth() / 2 - w / 2, mRedTouchBox.centerY(), mPaint);
+        		canvas.drawText(join, getWidth() / 2 - joinw / 2, mRedTouchBox.centerY(), mPaint);
         	}
         	
         	if(!mBlueIsPlayer) {
         		mPaint.setColor(Color.BLUE);
-        		canvas.drawText(s, getWidth() / 2 - w / 2, mBlueTouchBox.centerY(), mPaint);
+        		canvas.drawText(join, getWidth() / 2 - joinw / 2, mBlueTouchBox.centerY(), mPaint);
         	}
-        	
+        }
+        
+        // Show where the player can touch to pause the game
+        if(!showTitle && (mBallCounter / 10) % 2 == 0 && mBallCounter > 0) {
+        	String pause = context.getString(R.string.pause);
+        	int pausew = (int) mPaint.measureText(pause);
+        
+        	mPaint.setColor(Color.GREEN);
+        	mPaint.setStyle(Style.STROKE);
+        	canvas.drawRect(mPauseTouchBox, mPaint);
+        	canvas.drawText(pause, getWidth() / 2 - pausew / 2, getHeight() / 2, mPaint);
         }
 
     	// Paint a PAUSED message
@@ -673,8 +691,7 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 		else if(mRedIsPlayer && mRedTouchBox.contains(tx,ty)) {
 			mRedLastTouch = tx;
 		}
-		else if(mo.getAction() == MotionEvent.ACTION_DOWN
-				&& !mBlueTouchBox.contains(tx,ty) && !mRedTouchBox.contains(tx,ty)) {
+		else if(mo.getAction() == MotionEvent.ACTION_DOWN && mPauseTouchBox.contains(tx, ty)) {
 			if(mCurrentState != State.Stopped) {
 				mLastState = mCurrentState;
 				mCurrentState = State.Stopped;
@@ -695,6 +712,24 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 			}
 		}
 		
+		
+		return true;
+	}
+	
+	@Override
+	public boolean onTrackballEvent(MotionEvent event) {
+		if(!gameRunning() || showTitle) return false;
+		
+		if(mBlueIsPlayer == false) {
+			mBlueIsPlayer = true;
+			mBlueLastTouch = mBluePaddleRect.centerX();
+		}
+		
+		switch(event.getAction()) {
+		case MotionEvent.ACTION_MOVE:
+			mBlueLastTouch = Math.max(0, Math.min(getWidth(), mBlueLastTouch + SCROLL_SENSITIVITY * event.getX()));
+			break;
+		}
 		
 		return true;
 	}
