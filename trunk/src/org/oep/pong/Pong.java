@@ -98,6 +98,10 @@ public class Pong extends Activity {
     		mRefresher.sleep(5000);
     		break;
     	case R.id.quit: this.finish(); return true;
+    	
+    	case R.id.menu_toggle_sound:
+    		mPongView.toggleMuted();
+    		break;
     	}
     	
     	if(flag) {
@@ -115,4 +119,7 @@ public class Pong extends Activity {
     		mAboutBox = null;
     	}
     }
+    
+    public static final String DB_PREFS = "Pong";
+    public static final String PREF_MUTED = "pref_muted";
 }
