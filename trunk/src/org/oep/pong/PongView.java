@@ -16,11 +16,13 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.View.OnTouchListener;
+import android.widget.Toast;
 
 /**
  * This class is the main viewing window for the Pong game. All the game's
@@ -29,6 +31,8 @@ import android.view.View.OnTouchListener;
  *
  */
 public class PongView extends View implements OnTouchListener, OnKeyListener, OnCompletionListener {
+	private static final String TAG = "PongView";
+	
 	/**
 	 * This is mostly deprecated but kept around if the need
 	 * to add more game states comes around.
@@ -78,8 +82,8 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	private int mDX;
 	private int mDY;
 	private int mBallCounter = 60;
-	private static int mBallSpeed = 4;
-	private static int mPaddleSpeed = mBallSpeed - 2;
+	private int mBallSpeed = 4;
+	private int mPaddleSpeed = mBallSpeed - 2;
 	
 	/**
 	 * Who doesn't love random numbers?
@@ -95,7 +99,7 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	private static final int PADDLE_THICKNESS = 10;
 	private static final int PADDLE_WIDTH = 40;
 	private static final int PADDING = 3;
-	private static final int SCROLL_SENSITIVITY = 20 * mPaddleSpeed;
+	private static final int SCROLL_SENSITIVITY = 80;
 	
 	/**
 	 * Controls how fast we refresh
@@ -275,6 +279,8 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	 * @param cpu
 	 */
 	private void doAI(Rect cpu) {
+		long start = System.currentTimeMillis();
+		
 		// vy = speed * sin(angle)
 		int vy = mDY;
 		
@@ -334,13 +340,17 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 		Random r = new Random(cpu.centerY() + mBallAngle + salt);
 		x += r.nextInt(2 * PADDLE_WIDTH - (PADDLE_WIDTH / 5)) - PADDLE_WIDTH + (PADDLE_WIDTH / 10);
 		movePaddleTorward(cpu, mPaddleSpeed, x);
+		
+		long stop = System.currentTimeMillis();
+		
+//		Log.d(TAG, String.format("AI took %d ms", stop - start));
 	}
 	
 	/**
 	 * Knocks up the framerate a bit to keep it difficult.
 	 */
 	private void increaseDifficulty() {
-		if(mFramesPerSecond < 250) {
+		if(mFramesPerSecond < 50) {
 			mFramesPerSecond += mFrameSkips;
 			mFrameSkips++;
 		}
@@ -560,6 +570,8 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
      */
     @Override
     public void onDraw(Canvas canvas) {
+    	long start = System.currentTimeMillis();
+    	
         super.onDraw(canvas);
     	Context context = getContext();
         
@@ -627,6 +639,7 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
         // Draw a 'lives' counter
         if(!showTitle) {
         	mPaint.setColor(Color.WHITE);
+        	mPaint.setStyle(Style.FILL_AND_STROKE);
         	for(int i = 0; i < mRedLives; i++) {
         		canvas.drawCircle(BALL_RADIUS + PADDING + i * (2 * BALL_RADIUS + PADDING),
         				PADDING + BALL_RADIUS,
@@ -677,7 +690,9 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
         	canvas.drawText(prompt, getWidth() / 2 - w / 2, nextLine, mPaint);
         }
         
-        // canvas.drawText("Angle: " + mBallAngle, 0, getHeight() / 2, mPaint);
+        long stop = System.currentTimeMillis();
+        
+//        Log.d(TAG, String.format("Draw took %d ms", stop - start));
     }
 
     /**
@@ -830,6 +845,10 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 		// Save the value
 		editor.putBoolean(Pong.PREF_MUTED, b);
 		editor.commit();
+		
+		// Output a toast to the user
+		int rid = (mMuted) ? R.string.sound_disabled : R.string.sound_enabled;
+		Toast.makeText(ctx, rid, Toast.LENGTH_SHORT).show();
 	}
 	
 	/**

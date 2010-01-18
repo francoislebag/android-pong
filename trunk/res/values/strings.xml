@@ -23,4 +23,6 @@
 <string name="pause">Pause</string>
 <string name="toggle_sound">Toggle sound</string>
 
+<string name="sound_enabled">Sound enabled</string>
+<string name="sound_disabled">Sound disabled</string>
 </resources>
