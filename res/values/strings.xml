@@ -21,4 +21,6 @@
     
     <string name="join_in">Touch to join in!</string>
 <string name="pause">Pause</string>
+<string name="toggle_sound">Toggle sound</string>
+
 </resources>

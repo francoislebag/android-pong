@@ -1,7 +1,9 @@
 package org.oep.pong;
 
 import java.util.Random;
+
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -37,9 +39,10 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 
 	
 	private boolean initialized = false;		// Exists to initialize the View when getWidth() and getHeight() are known
-	private boolean requestNewRound = true;	// Setting this to true will start a new round on the next game loop pass
+	private boolean requestNewRound = true;		// Setting this to true will start a new round on the next game loop pass
 	private boolean showTitle = true;			// Overlay the Pong logo over a computerized game
 	private boolean mContinue = true;			// Set this to false to KILL THE THREAD.
+	private boolean mMuted = false;				// Mute sounds.
 	
 	/**
 	 * These variables concern the paddles, controlling their touch zones, lives, last
@@ -130,7 +133,7 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
     public PongView(Context context, AttributeSet attrs) {
         super(context, attrs);
         initPongView();
-   }
+    }
 
     public PongView(Context context, AttributeSet attrs, int defStyle) {
     	super(context, attrs, defStyle);
@@ -462,6 +465,11 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
     	mPaddleHit = loadSound(R.raw.paddle);
     	mMissTone = loadSound(R.raw.ballmiss);
     	mWinTone = loadSound(R.raw.wintone);
+    	
+    	// Grab the muted preference
+    	Context ctx = this.getContext();
+    	SharedPreferences settings = ctx.getSharedPreferences(Pong.DB_PREFS, 0);
+    	mMuted = settings.getBoolean(Pong.PREF_MUTED, mMuted);
     }
     
     /**
@@ -806,6 +814,23 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 		mContinue = false;
 	}
 	
+	public void toggleMuted() {
+		this.setMuted(!mMuted);
+	}
+	
+	public void setMuted(boolean b) {
+		// Set the in-memory flag
+		mMuted = b;
+		
+		// Grab a preference editor
+		Context ctx = this.getContext();
+		SharedPreferences settings = ctx.getSharedPreferences(Pong.DB_PREFS, 0);
+		SharedPreferences.Editor editor = settings.edit();
+		
+		// Save the value
+		editor.putBoolean(Pong.PREF_MUTED, b);
+		editor.commit();
+	}
 	
 	/**
 	 * Put yer resources in year and we'll release em!
@@ -824,6 +849,8 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 	}
 	
 	private void playSound(MediaPlayer mp) {
+		if(mMuted == true) return;
+		
 		if(!mp.isPlaying()) {
 			mp.setVolume(0.5f, 0.5f);
 			mp.start();
