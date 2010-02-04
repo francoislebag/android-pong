@@ -877,7 +877,7 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
 		if(mMuted == true) return;
 		
 		if(!mp.isPlaying()) {
-			mp.setVolume(0.5f, 0.5f);
+			mp.setVolume(0.2f, 0.2f);
 			mp.start();
 		}
 	}
