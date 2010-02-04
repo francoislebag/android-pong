@@ -702,39 +702,45 @@ public class PongView extends View implements OnTouchListener, OnKeyListener, On
      */
 	public boolean onTouch(View v, MotionEvent mo) {
 		if(v != this || !gameRunning() || showTitle) return false;
+		
+		// We want to support multiple touch and single touch
+		InputHandler handle = InputHandler.getInstance();
 
-		int tx = (int) mo.getX();
-		int ty = (int) mo.getY();
-		
-		// Bottom paddle moves when we are playing in one or two player mode and the touch
-		// was in the lower quartile of the screen.
-		if(mBlueIsPlayer && mBlueTouchBox.contains(tx,ty)) {
-			mBlueLastTouch = tx;
-		}
-		else if(mRedIsPlayer && mRedTouchBox.contains(tx,ty)) {
-			mRedLastTouch = tx;
-		}
-		else if(mo.getAction() == MotionEvent.ACTION_DOWN && mPauseTouchBox.contains(tx, ty)) {
-			if(mCurrentState != State.Stopped) {
-				mLastState = mCurrentState;
-				mCurrentState = State.Stopped;
+		// Loop through all the pointers that we detected and 
+		// process them as normal touch events.
+		for(int i = 0; i < handle.getTouchCount(mo); i++) {
+			int tx = (int) handle.getX(mo, i);
+			int ty = (int) handle.getY(mo, i);
+			
+			// Bottom paddle moves when we are playing in one or two player mode and the touch
+			// was in the lower quartile of the screen.
+			if(mBlueIsPlayer && mBlueTouchBox.contains(tx,ty)) {
+				mBlueLastTouch = tx;
 			}
-			else {
-				mCurrentState = mLastState;
-				mLastState = State.Stopped;
+			else if(mRedIsPlayer && mRedTouchBox.contains(tx,ty)) {
+				mRedLastTouch = tx;
+			}
+			else if(mo.getAction() == MotionEvent.ACTION_DOWN && mPauseTouchBox.contains(tx, ty)) {
+				if(mCurrentState != State.Stopped) {
+					mLastState = mCurrentState;
+					mCurrentState = State.Stopped;
+				}
+				else {
+					mCurrentState = mLastState;
+					mLastState = State.Stopped;
+				}
+			}
+			
+			// In case a player wants to join in...
+			if(mo.getAction() == MotionEvent.ACTION_DOWN) {
+				if(!mBlueIsPlayer && mBlueTouchBox.contains(tx,ty)) {
+					mBlueIsPlayer = true;
+				}
+				else if(!mRedIsPlayer && mRedTouchBox.contains(tx,ty)) {
+					mRedIsPlayer = true;
+				}
 			}
 		}
-				
-		// In case a player wants to join in...
-		if(mo.getAction() == MotionEvent.ACTION_DOWN) {
-			if(!mBlueIsPlayer && mBlueTouchBox.contains(tx,ty)) {
-				mBlueIsPlayer = true;
-			}
-			else if(!mRedIsPlayer && mRedTouchBox.contains(tx,ty)) {
-				mRedIsPlayer = true;
-			}
-		}
-		
 		
 		return true;
 	}
